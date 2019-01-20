@@ -113,15 +113,24 @@
   const average = (list) => list.reduce((a, b) => a+b)/list.length;
 
   const drawGraph = () => {
-    console.log('drawGraph');
     const canvas = document.getElementById('graph');
     const context = canvas.getContext('2d');
     
     // Clear canvas
     context.fillStyle = 'whitesmoke';
-    context.lineWidth = 10;
+    context.lineWidth = 5;
     context.fillRect(0, 0, GRAPH_PERIOD, GRAPH_HEIGHT);
     const averagePrice = PRICE_HISTORY.reduce((a, b) => a+b)/PRICE_HISTORY.length;
+    
+    // Draw exponential lines
+    for (let i = 0; i < 100; i++) {
+      context.beginPath();
+      context.moveTo(0, GRAPH_HEIGHT + averagePrice-Math.pow(1.2, i));
+      context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT + averagePrice-Math.pow(1.2, i));
+      context.strokeStyle = 'lightgray';
+      context.strokeWidth = 5;
+      context.stroke();
+    }
     
     // Draw orders
     for (order of ORDERS) {
@@ -129,7 +138,7 @@
       context.moveTo(0, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
       context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
       context.strokeStyle = order.orderType === 'buy' ? 'green' : 'orangered';
-      context.lineWidth = 10;
+      context.lineWidth = 5;
       context.stroke();
     }
     
@@ -139,6 +148,7 @@
       context.moveTo(i*GRAPH_PERIOD/PRICE_HISTORY.length, GRAPH_HEIGHT / 2 + averagePrice-PRICE_HISTORY[i]);
       context.lineTo((i+1)*GRAPH_PERIOD/PRICE_HISTORY.length, GRAPH_HEIGHT / 2 + averagePrice-PRICE_HISTORY[i+1]);
       context.strokeStyle = 'red';
+      context.lineWidth = 5;
       context.stroke();
     }
   }

@@ -1,0 +1,63 @@
+<style>
+  #sideBarContent {
+    font-family: Arial Black;
+    color: darkslategray;
+    font-size: 24px;
+    margin: 10px;
+  }
+  .amountInput {
+    padding: 10px;
+    background-color: whitesmoke;
+  }
+</style>
+<body>
+  <div id='tradingWindow' style='width:100%;'>
+    <div id='sideBar' style='width:25%;float:left'>
+      <div id='sideBarContent'>
+        Current price: <span id='currentPrice'></span><br>
+        <br>
+        Money: €<span id='currentMoneyBalance'></span><br>
+        <br>
+        Stocks: <span id='currentStockBalance'></span><br>
+        <br>
+        Amount<br>
+        <input class='amountInput'><br>
+        <br>
+        Limit price<br>
+        <input class='amountInput'><br>
+      </div>
+    </div>
+    <canvas id='graph' width='1920' height='540';' style='width:75%;float:right'></canvas>
+  </div>
+</body>
+
+<script>
+  let CURRENT_PRICE = 500;
+  let CURRENT_TIME = 0;
+  let CURRENT_MONEY_BALANCE = 1000;
+  
+  const initCanvas = () => {
+    const canvas = document.getElementById('graph');
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'whitesmoke';
+    context.fillRect(0, 0, 1920, 540);
+  }
+  
+  const iterate = () => {
+    console.log('drawing');
+    const canvas = document.getElementById('graph');
+    const context = canvas.getContext('2d');
+    const difference = Math.floor((Math.random() * 100) -50);
+    context.moveTo(CURRENT_TIME, CURRENT_PRICE);
+    CURRENT_PRICE+=difference;
+    document.getElementById('currentPrice').innerHTML = CURRENT_PRICE;
+    CURRENT_TIME++;
+    context.lineTo(CURRENT_TIME, CURRENT_PRICE);
+    context.strokeStyle = 'red';
+    context.stroke();
+    setTimeout(iterate, 100);
+  }
+
+  initCanvas();
+  iterate();
+</script>

@@ -122,14 +122,17 @@
     context.fillRect(0, 0, GRAPH_PERIOD, GRAPH_HEIGHT);
     const averagePrice = PRICE_HISTORY.reduce((a, b) => a+b)/PRICE_HISTORY.length;
     
-    // Draw exponential lines
+    // Draw exponential lines and numbers
     for (let i = 0; i < 100; i++) {
       context.beginPath();
-      context.moveTo(0, GRAPH_HEIGHT + averagePrice-Math.pow(1.2, i));
-      context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT + averagePrice-Math.pow(1.2, i));
+      context.moveTo(0, GRAPH_HEIGHT/2 + averagePrice-Math.pow(1.2, i));
+      context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT/2 + averagePrice-Math.pow(1.2, i));
       context.strokeStyle = 'lightgray';
       context.strokeWidth = 5;
       context.stroke();
+      context.font = `${0.1*Math.pow(1.2, i)}px Arial`;
+      context.fillStyle = 'lightgray';
+      context.fillText(String(Math.pow(1.2, i).toFixed(2)), 10, GRAPH_HEIGHT/2 + averagePrice-Math.pow(1.2, i)-10);
     }
     
     // Draw orders

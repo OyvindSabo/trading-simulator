@@ -16,6 +16,7 @@
 </style>
 <script>
   let GRAPH_PERIOD = 1920;
+  let GRAPH_HEIGHT = 540;
   let CURRENT_STOCK_PRICE = 500;
   let CURRENT_TIME = 0;
   let CURRENT_MONEY_BALANCE = 1000;
@@ -81,12 +82,12 @@
     const canvas = document.getElementById('graph');
     const context = canvas.getContext('2d');
     context.fillStyle = 'whitesmoke';
-    context.fillRect(0, 0, 1920, 540);
+    context.fillRect(0, 0, GRAPH_PERIOD, GRAPH_HEIGHT);
   }
 
   const addToPriceHistory = () => {
     PRICE_HISTORY.push(CURRENT_STOCK_PRICE);
-    while (PRICE_HISTORY.length > GRAPH_PERIOD) {
+    while (PRICE_HISTORY.length > GRAPH_PERIOD/10) {
       PRICE_HISTORY.shift();
     }
   }
@@ -101,19 +102,49 @@
         }
         return;
       }
-      if (CURRENT_PRICE >= order.limitPrice) {
+      if (CURRENT_STOCK_PRICE >= order.limitPrice) {
         CURRENT_MONEY_BALANCE += CURRENT_STOCK_PRICE*order.stockCount;
         CURRENT_STOCK_COUNT -= order.stockCount;
         ORDERS.splice(ORDERS.indexOf(order), 1);
       }
     });
   }
-  
-  const iterate = () => {;
+
+  const average = (list) => list.reduce((a, b) => a+b)/list.length;
+
+  const drawGraph = () => {
+    console.log('drawGraph');
     const canvas = document.getElementById('graph');
     const context = canvas.getContext('2d');
+    
+    // Clear canvas
+    context.fillStyle = 'whitesmoke';
+    context.lineWidth = 10;
+    context.fillRect(0, 0, GRAPH_PERIOD, GRAPH_HEIGHT);
+    const averagePrice = PRICE_HISTORY.reduce((a, b) => a+b)/PRICE_HISTORY.length;
+    
+    // Draw orders
+    for (order of ORDERS) {
+      context.beginPath();
+      context.moveTo(0, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
+      context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
+      context.strokeStyle = order.orderType === 'buy' ? 'green' : 'orangered';
+      context.lineWidth = 10;
+      context.stroke();
+    }
+    
+    // Draw graph
+    for (let i = 0; i < PRICE_HISTORY.length-1; i++) {
+      context.beginPath();
+      context.moveTo(i*GRAPH_PERIOD/PRICE_HISTORY.length, GRAPH_HEIGHT / 2 + averagePrice-PRICE_HISTORY[i]);
+      context.lineTo((i+1)*GRAPH_PERIOD/PRICE_HISTORY.length, GRAPH_HEIGHT / 2 + averagePrice-PRICE_HISTORY[i+1]);
+      context.strokeStyle = 'red';
+      context.stroke();
+    }
+  }
+  
+  const iterate = () => {;
     const difference = (Math.floor(Math.random()*2) == 1 ? 1 : -1)*CURRENT_STOCK_PRICE*0.01;
-    context.moveTo(CURRENT_TIME, CURRENT_STOCK_PRICE);
     
     // Calculate and set current price
     CURRENT_STOCK_PRICE = (Math.floor(Math.random()*2) == 1
@@ -138,10 +169,7 @@
     // Calculate current time
     CURRENT_TIME++;
     
-    // Draw next graph iteration
-    context.lineTo(CURRENT_TIME, CURRENT_STOCK_PRICE);
-    context.strokeStyle = 'red';
-    context.stroke();
+    drawGraph();
     setTimeout(iterate, 100);
   }
 

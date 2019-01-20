@@ -13,6 +13,22 @@
     font-family: Arial Black;
     font-size: 24px;
   }
+  .orders {
+    background-color: whitesmoke;
+    font-family: Arial Black;
+    color: darkslategray;
+    font-size: 24px;
+    padding: 10px;
+  }
+  #openOrders {
+    margin: 10px 10px 0 0;
+  }
+  #closedOrders {
+    margin: 10px 0 0 10px;
+  }
+  #graph {
+    overflow: hidden;
+  }
 </style>
 <script>
   let GRAPH_PERIOD = 1920;
@@ -22,31 +38,77 @@
   let CURRENT_MONEY_BALANCE = 1000;
   let CURRENT_STOCK_COUNT = 0;
   let ORDER_TYPE = 'buy';
-  let ORDERS = [];
+  let OPEN_ORDERS = [];
+  let CLOSED_ORDERS = [];
   let PRICE_HISTORY = [];
   
   const handleBuyClick = () => {
     ORDER_TYPE = 'buy';
-    document.getElementById('buyButton').style['background-color'] = 'lightgreen';
+    document.getElementById('buyButton').style['background-color'] = 'green';
+    document.getElementById('buyButton').style['color'] = 'white';
     document.getElementById('sellButton').style['background-color'] = 'white';
-    document.getElementById('placeOrderButton').style['background-color'] = 'lightGreen';
+    document.getElementById('sellButton').style['color'] = 'black';
+    document.getElementById('placeOrderButton').style['background-color'] = 'green';
+    document.getElementById('placeOrderButton').style['color'] = 'white';
     document.getElementById('placeOrderButton').innerHTML = 'Place buy order';
   }
 
   const handleSellClick = () => {
     ORDER_TYPE = 'sell';
     document.getElementById('buyButton').style['background-color'] = 'white';
-    document.getElementById('sellButton').style['background-color'] = 'orangered';
-    document.getElementById('placeOrderButton').style['background-color'] = 'orangered';
+    document.getElementById('buyButton').style['color'] = 'black';
+    document.getElementById('sellButton').style['background-color'] = 'red';
+    document.getElementById('sellButton').style['color'] = 'white';
+    document.getElementById('placeOrderButton').style['background-color'] = 'red';
+    document.getElementById('placeOrderButton').style['color'] = 'white';
     document.getElementById('placeOrderButton').innerHTML = 'Place sell order';
   }
 
+  const updateOrderBook = () => {
+    let openOrders = `Open orders<br>
+                        <table>
+                          <tr>
+                            <td>Order type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td>Size&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td>Price&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td>Total cost&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                          <tr>`;
+    OPEN_ORDERS.forEach(order => {
+      openOrders += `<tr>
+                       <td><span style='color:${order.orderType === 'buy' ? 'green' : 'red'}'>${order.orderType === 'buy' ? 'Buy' : 'Sell'}</td>
+                       <td>${order.stockCount}</td>
+                       <td>€${order.limitPrice}</td>
+                       <td>€${order.stockCount * order.limitPrice}</td>
+                     </tr>`;
+    });
+    openOrders += '</table>'
+    document.getElementById('openOrders').innerHTML = openOrders;
+    let closedOrders = `Closed orders<br>
+                        <table>
+                          <tr>
+                            <td>Order type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td>Size&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td>Price&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                            <td>Total cost&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                          <tr>`;
+    CLOSED_ORDERS.forEach(order => {
+      closedOrders += `<tr>
+                         <td><span style='color:${order.orderType === 'buy' ? 'green' : 'red'}'>${order.orderType === 'buy' ? 'Buy' : 'Sell'}</td>
+                         <td>${order.stockCount}</td>
+                         <td>€${order.limitPrice}</td>
+                         <td>€${order.stockCount * order.limitPrice}</td>
+                       </tr>`;
+    });
+    closedOrders += '</table>'
+    document.getElementById('closedOrders').innerHTML = closedOrders;
+  }
+  
   const handlePlaceOrder = () => {
     const stockCount = parseInt(document.getElementById('stockCountInput').value);
     document.getElementById('stockCountInput').value = '';
     const limitPrice = parseInt(document.getElementById('limitPriceInput').value);
     document.getElementById('limitPriceInput').value = '';
-    ORDERS.push({orderType: ORDER_TYPE, stockCount: stockCount, limitPrice: limitPrice});
+    OPEN_ORDERS.push({orderType: ORDER_TYPE, stockCount: stockCount, limitPrice: limitPrice});
   }
 </script>
 <body>
@@ -61,8 +123,8 @@
         <br>
         Total value: €<span id='currentTotalValue'></span><br>
         <br>
-        <button id='buyButton' onclick='handleBuyClick()' style='background-color:lightgreen;' class='sideBarButton' type='button' style='width=100%;'>Buy</button>
-        <button id='sellButton' onclick='handleSellClick()' style='background-color:white;' class='sideBarButton' type='button' style='width=100%;'>Sell</button><br>
+        <button id='buyButton' onclick='handleBuyClick()' style='background-color:green;color:white' class='sideBarButton' type='button' style='width=100%;'>Buy</button>
+        <button id='sellButton' onclick='handleSellClick()' style='background-color:white' class='sideBarButton' type='button' style='width=100%'>Sell</button><br>
         <br>
         Amount<br>
         <input id='stockCountInput' type='number' min='0' class='amountInput'><br>
@@ -70,10 +132,23 @@
         Limit price<br>
         <input id='limitPriceInput' type='number' min='0' class='amountInput'><br>
         <br>
-        <button id='placeOrderButton' onclick='handlePlaceOrder()' style='background-color:lightgreen;' class='sideBarButton' type='button' style='width=100%;'>Place Buy Order</button>
+        <button id='placeOrderButton' onclick='handlePlaceOrder()' style='background-color:green;color:white' class='sideBarButton' type='button' style='width=100%'>Place Buy Order</button>
       </div>
     </div>
-    <canvas id='graph' width='1920' height='540';' style='width:75%;float:right'></canvas>
+    <div id='mainContent' style='width:75%;float:right'>
+      <canvas id='graph' width='1920' height='540;' style='width:100%'></canvas>
+      <div id='leftHalf' style='width:50%;float:left'>
+        <div id='openOrders' class='orders'>
+          Open orders<br>
+          <span></span>
+        </div>
+      </div>
+      <div id='rightHalf' style='width:50%;float:right'>
+        <div id='closedOrders' class='orders'>
+          Closed orders<br>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 
@@ -93,19 +168,21 @@
   }
   
   const handleOrders = () => {
-    ORDERS.forEach(order => {
+    OPEN_ORDERS.forEach(order => {
       if (order.orderType === 'buy') {
         if (CURRENT_STOCK_PRICE <= order.limitPrice) {
           CURRENT_MONEY_BALANCE -= CURRENT_STOCK_PRICE*order.stockCount;
           CURRENT_STOCK_COUNT += order.stockCount;
-          ORDERS.splice(ORDERS.indexOf(order), 1);
+          CLOSED_ORDERS.push(order);
+          OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
         }
         return;
       }
       if (CURRENT_STOCK_PRICE >= order.limitPrice) {
         CURRENT_MONEY_BALANCE += CURRENT_STOCK_PRICE*order.stockCount;
         CURRENT_STOCK_COUNT -= order.stockCount;
-        ORDERS.splice(ORDERS.indexOf(order), 1);
+        CLOSED_ORDERS.push(order);
+        OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
       }
     });
   }
@@ -136,7 +213,7 @@
     }
     
     // Draw orders
-    for (order of ORDERS) {
+    for (order of OPEN_ORDERS) {
       context.beginPath();
       context.moveTo(0, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
       context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
@@ -168,6 +245,7 @@
     addToPriceHistory();
 
     handleOrders();
+    updateOrderBook();
     
     // Set current money balance
     document.getElementById('currentMoneyBalance').innerHTML = CURRENT_MONEY_BALANCE.toFixed(2);

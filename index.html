@@ -26,6 +26,9 @@
   #closedOrders {
     margin: 10px 0 0 10px;
   }
+  #orderStats {
+    margin: 10px 0px 0px 0;
+  }
   #graph {
     overflow: hidden;
   }
@@ -35,7 +38,7 @@
   let GRAPH_HEIGHT = 540;
   let CURRENT_STOCK_PRICE = 500;
   let CURRENT_TIME = 0;
-  let CURRENT_MONEY_BALANCE = 1000;
+  let CURRENT_MONEY_BALANCE = 10000;
   let CURRENT_STOCK_COUNT = 0;
   let ORDER_TYPE = 'buy';
   let OPEN_ORDERS = [];
@@ -105,10 +108,19 @@
   
   const handlePlaceOrder = () => {
     const stockCount = parseInt(document.getElementById('stockCountInput').value);
-    document.getElementById('stockCountInput').value = '';
     const limitPrice = parseInt(document.getElementById('limitPriceInput').value);
-    document.getElementById('limitPriceInput').value = '';
-    OPEN_ORDERS.push({orderType: ORDER_TYPE, stockCount: stockCount, limitPrice: limitPrice});
+    if ((ORDER_TYPE === 'buy' && stockCount * limitPrice <= CURRENT_MONEY_BALANCE) || (ORDER_TYPE === 'sell' && stockCount <= CURRENT_STOCK_COUNT)) {
+      document.getElementById('stockCountInput').value = '';
+      document.getElementById('limitPriceInput').value = '';
+      OPEN_ORDERS.push({orderType: ORDER_TYPE, stockCount: stockCount, limitPrice: limitPrice});
+      if (ORDER_TYPE === 'buy') {
+        CURRENT_MONEY_BALANCE -= stockCount * limitPrice;
+      }
+    } else if (ORDER_TYPE === 'buy') {
+      alert('You don\'t have enough money.');
+    } else {
+      alert('You don\'t have enough stocks.');
+    }
   }
 </script>
 <body>
@@ -117,9 +129,9 @@
       <div id='sideBarContent'>
         Current price: <span id='currentStockPrice'></span><br>
         <br>
-        Money:      €<span id='currentMoneyBalance'></span><br>
+        Money:      €<span id='currentMoneyBalance'></span> <span id='currentOpenOrderValue' style='color:lightgray'></span><br>
         <br>
-        Stocks:      <span id='currentStockCount'></span> (€<span id='currentPortfolioValue'></span>)<br>
+        Stocks:      <span id='currentStockCount'></span> <span id='currentPortfolioValue' style='color:lightgray'></span><br>
         <br>
         Total value: €<span id='currentTotalValue'></span><br>
         <br>
@@ -137,6 +149,12 @@
     </div>
     <div id='mainContent' style='width:75%;float:right'>
       <canvas id='graph' width='1920' height='540;' style='width:100%'></canvas>
+      <div id=fullWidth style='width:100%'>
+        <div id='orderStats' class='orders'>
+          Average buy price: <span id='averageBuyPrice' style='color:green'></span><br>
+          Average sell price: <span id='averageSellPrice' style='color:red'></span>
+        </div>
+      </div>
       <div id='leftHalf' style='width:50%;float:left'>
         <div id='openOrders' class='orders'>
           Open orders<br>
@@ -171,18 +189,17 @@
     OPEN_ORDERS.forEach(order => {
       if (order.orderType === 'buy') {
         if (CURRENT_STOCK_PRICE <= order.limitPrice) {
-          CURRENT_MONEY_BALANCE -= CURRENT_STOCK_PRICE*order.stockCount;
           CURRENT_STOCK_COUNT += order.stockCount;
           CLOSED_ORDERS.push(order);
           OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
         }
-        return;
-      }
-      if (CURRENT_STOCK_PRICE >= order.limitPrice) {
-        CURRENT_MONEY_BALANCE += CURRENT_STOCK_PRICE*order.stockCount;
-        CURRENT_STOCK_COUNT -= order.stockCount;
-        CLOSED_ORDERS.push(order);
-        OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
+      } else if (order.orderType === 'sell') {
+        if (CURRENT_STOCK_PRICE >= order.limitPrice) {
+          CURRENT_STOCK_COUNT -= order.stockCount;
+          CURRENT_MONEY_BALANCE += order.stockCount*order.limitPrice;
+          CLOSED_ORDERS.push(order);
+          OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
+        }
       }
     });
   }
@@ -233,8 +250,30 @@
     }
   }
   
-  const iterate = () => {;
-    const difference = (Math.floor(Math.random()*2) == 1 ? 1 : -1)*CURRENT_STOCK_PRICE*0.01;
+  const averageBuyPrice = () => {
+    let totalBuyValue = 0;
+    const closedBuyOrders = CLOSED_ORDERS.filter(order => order.orderType === 'buy')
+    if (closedBuyOrders.length) {
+      return closedBuyOrders.reduce((a, b) => a + b.stockCount*b.limitPrice, 0)/closedBuyOrders.reduce((a, b) => a + b.stockCount, 0);
+    }
+    return 0;
+  }
+
+  const averageSellPrice = () => {
+    let totalBuyValue = 0;
+    const closedSellOrders = CLOSED_ORDERS.filter(order => order.orderType === 'sell')
+    if (closedSellOrders.length) {
+      return closedSellOrders.reduce((a, b) => a + b.stockCount*b.limitPrice, 0)/closedSellOrders.reduce((a, b) => a + b.stockCount, 0);
+    }
+    return 0;
+  }
+  
+  const openBuyOrderValue = () =>
+    OPEN_ORDERS
+      .filter(order => order.orderType === 'buy')
+      .reduce((a, b) => a + b.stockCount*b.limitPrice, 0)
+
+  const iterate = () => {
     
     // Calculate and set current price
     CURRENT_STOCK_PRICE = (Math.floor(Math.random()*2) == 1
@@ -249,13 +288,18 @@
     
     // Set current money balance
     document.getElementById('currentMoneyBalance').innerHTML = CURRENT_MONEY_BALANCE.toFixed(2);
+    document.getElementById('currentOpenOrderValue').innerHTML = `(+ €${openBuyOrderValue().toFixed(2)})`;
 
     // Set current stock count
-    document.getElementById('currentStockCount').innerHTML = CURRENT_STOCK_COUNT.toFixed(2);
+    document.getElementById('currentStockCount').innerHTML = CURRENT_STOCK_COUNT.toFixed(0);
     
     // Calculate and set total value
-    document.getElementById('currentPortfolioValue').innerHTML = (CURRENT_STOCK_PRICE*CURRENT_STOCK_COUNT).toFixed(2);
-    document.getElementById('currentTotalValue').innerHTML = (CURRENT_STOCK_PRICE*CURRENT_STOCK_COUNT + CURRENT_MONEY_BALANCE).toFixed(2);
+    document.getElementById('currentPortfolioValue').innerHTML = `(= €${(CURRENT_STOCK_PRICE*CURRENT_STOCK_COUNT).toFixed(2)})`;
+    document.getElementById('currentTotalValue').innerHTML = (CURRENT_STOCK_PRICE*CURRENT_STOCK_COUNT + CURRENT_MONEY_BALANCE + openBuyOrderValue()).toFixed(2);
+
+    // Calculate and set average buy and sell price
+    document.getElementById('averageBuyPrice').innerHTML = averageBuyPrice().toFixed(2);
+    document.getElementById('averageSellPrice').innerHTML = averageSellPrice().toFixed(2);
     
     // Calculate current time
     CURRENT_TIME++;

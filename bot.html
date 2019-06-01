@@ -46,9 +46,9 @@
   let PRICE_HISTORY = [];
 
   // Bot variables
-  let LAST_PRICE_IN_SCALE = 100;
-  let TOP_PRICE_IN_SCALE = 100 / 1.2; // The highest price at which an order has been placed
-  INITIAL_BOT_BUY_PRICE = 100;
+  let LAST_PRICE_IN_SCALE = 500;
+  let TOP_PRICE_IN_SCALE = 500 / 1.2; // The highest price at which an order has been placed
+  INITIAL_BOT_BUY_PRICE = 100; // Not the price per stock, but the total order cost
   
   const handleBuyClick = () => {
     ORDER_TYPE = 'buy';

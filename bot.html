@@ -48,6 +48,7 @@
   // Bot variables
   let LAST_PRICE_IN_SCALE = 500;
   let TOP_PRICE_IN_SCALE = 500 / 1.2; // The highest price at which an order has been placed
+  INITIAL_BOT_BUY_PRICE = 500;
   
   const handleBuyClick = () => {
     ORDER_TYPE = 'buy';
@@ -280,7 +281,7 @@
 
   // Create the start order for the bot
   ORDER_TYPE = 'buy';
-  document.getElementById('stockCountInput').value = 100/TOP_PRICE_IN_SCALE;
+  document.getElementById('stockCountInput').value = INITIAL_BOT_BUY_PRICE/TOP_PRICE_IN_SCALE;
   document.getElementById('limitPriceInput').value = TOP_PRICE_IN_SCALE;
   handlePlaceOrder();
   
@@ -327,7 +328,7 @@
         OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
         // Create buy order of 100 dollars at price TOP_PRICE_IN_SCALE
         ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value = 100/TOP_PRICE_IN_SCALE;
+        document.getElementById('stockCountInput').value = INITIAL_BOT_BUY_PRICE/TOP_PRICE_IN_SCALE;
         document.getElementById('limitPriceInput').value = TOP_PRICE_IN_SCALE;
         handlePlaceOrder();
       } else { // A sell order should have been triggered
@@ -343,19 +344,29 @@
       }
     } else if (CURRENT_STOCK_PRICE < LAST_PRICE_IN_SCALE / 1.2) { // A buy order should have been triggered
       LAST_PRICE_IN_SCALE /= 1.2;
-      // Create a sell order of price LAST_PRICE_IN_SCALE * 1.2 and same amount as triggered buy order
-      ORDER_TYPE = 'sell';
-      document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount;
-      document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE * 1.2;
-      handlePlaceOrder();
-      // Empty open buy orders
-      CURRENT_MONEY_BALANCE += openBuyOrderValue();
-      OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
-      // Create a buy order of price LAST_PRICE_IN_SCALE / 1.2 with total cost of buy order = total cost of triggered buy order * 2 * 1.2
-      ORDER_TYPE = 'buy';
-      document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount * 2 * 1.2;
-      document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE / 1.2;
-      handlePlaceOrder();
+      // If a buy order was indeed triggered
+      const lastOrder = CLOSED_ORDERS[CLOSED_ORDERS.length-1];
+      if (lastOrder.orderType === 'buy' && Math.abs(lastOrder.limitPrice/CURRENT_STOCK_PRICE) < 1.1) {
+        console.log('limitPrice: ', lastOrder.limitPrice);
+        console.log("CURRENT_STOCK_PRICE: ", CURRENT_STOCK_PRICE);
+        console.log(Math.abs(lastOrder.limitPrice/CURRENT_STOCK_PRICE));
+        // Create a sell order of price LAST_PRICE_IN_SCALE * 1.2 and same amount as triggered buy order
+        ORDER_TYPE = 'sell';
+        document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount;
+        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE * 1.2;
+        handlePlaceOrder();
+      }
+      // If we have enough money
+      if (CURRENT_MONEY_BALANCE > CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount * 2 * LAST_PRICE_IN_SCALE) {
+        // Empty open buy orders
+        CURRENT_MONEY_BALANCE += openBuyOrderValue();
+        OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
+        // Create a buy order of price LAST_PRICE_IN_SCALE / 1.2 with total cost of buy order = total cost of triggered buy order * 2 * 1.2
+        ORDER_TYPE = 'buy';
+        document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount * 2 * 1.2;
+        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE / 1.2;
+        handlePlaceOrder();
+      }
     }
 
     setTimeout(iterate, 1);

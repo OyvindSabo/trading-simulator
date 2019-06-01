@@ -46,9 +46,9 @@
   let PRICE_HISTORY = [];
 
   // Bot variables
-  let LAST_PRICE_IN_SCALE = 500;
-  let TOP_PRICE_IN_SCALE = 500 / 1.2; // The highest price at which an order has been placed
-  INITIAL_BOT_BUY_PRICE = 500;
+  let LAST_PRICE_IN_SCALE = 100;
+  let TOP_PRICE_IN_SCALE = 100 / 1.2; // The highest price at which an order has been placed
+  INITIAL_BOT_BUY_PRICE = 100;
   
   const handleBuyClick = () => {
     ORDER_TYPE = 'buy';
@@ -122,9 +122,11 @@
         CURRENT_MONEY_BALANCE -= stockCount * limitPrice;
       }
     } else if (ORDER_TYPE === 'buy') {
-      alert('You don\'t have enough money.');
+      console.log("You don't have enough money");
+      //alert('You don\'t have enough money.');
     } else {
-      alert('You don\'t have enough stocks.');
+      console.log("You don't have enough stocks");
+      //alert('You don\'t have enough stocks.');
     }
   }
 </script>
@@ -366,7 +368,7 @@
       }
     }
 
-    setTimeout(iterate, 0.1);
+    setTimeout(iterate, 4);
   }
 
   initCanvas();

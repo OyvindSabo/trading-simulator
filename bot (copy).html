@@ -38,7 +38,7 @@
   let GRAPH_HEIGHT = 540;
   let CURRENT_STOCK_PRICE = 500;
   let CURRENT_TIME = 0;
-  let CURRENT_MONEY_BALANCE = 10000;
+  let CURRENT_MONEY_BALANCE = 100000;
   let CURRENT_STOCK_COUNT = 0;
   let ORDER_TYPE = 'buy';
   let OPEN_ORDERS = [];
@@ -48,7 +48,7 @@
   // Bot variables
   let LAST_PRICE_IN_SCALE = 500;
   let TOP_PRICE_IN_SCALE = 500 / 1.2; // The highest price at which an order has been placed
-  INITIAL_BOT_BUY_PRICE = 100; // Not the price per stock, but the total order cost
+  INITIAL_BOT_BUY_PRICE = 400; // Not the price per stock, but the total order cost
   
   const handleBuyClick = () => {
     ORDER_TYPE = 'buy';
@@ -75,8 +75,8 @@
   const updateOrderBook = () => {
     OPEN_ORDERS.reverse();
     CLOSED_ORDERS.reverse();
-    if (CLOSED_ORDERS.length > 20) {
-      CLOSED_ORDERS.length = 20;
+    if (CLOSED_ORDERS.length > 10000) {
+      CLOSED_ORDERS.length = 10000;
     }
     let openOrders = `Open orders<br>
                         <table>

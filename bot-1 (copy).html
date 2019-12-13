@@ -49,6 +49,7 @@
   let LAST_PRICE_IN_SCALE = 500;
   let TOP_PRICE_IN_SCALE = 500 / 1.2; // The highest price at which an order has been placed
   INITIAL_BOT_BUY_PRICE = 100; // Not the price per stock, but the total order cost
+  HAS_BOUGHT_FIRST_STOCK = false;
   
   const handleBuyClick = () => {
     ORDER_TYPE = 'buy';
@@ -75,8 +76,8 @@
   const updateOrderBook = () => {
     OPEN_ORDERS.reverse();
     CLOSED_ORDERS.reverse();
-    if (CLOSED_ORDERS.length > 20) {
-      CLOSED_ORDERS.length = 20;
+    if (CLOSED_ORDERS.length > 10000) {
+      CLOSED_ORDERS.length = 10000;
     }
     let openOrders = `Open orders<br>
                         <table>
@@ -328,8 +329,20 @@
     drawGraph();
 
     // Bot code
+    // If price increases (this should trigger an already created sell order of everything, except stock worth INITIAL_BOT_BUY_PRICE)
+      // Remove all buy orders
+      // Create a new sell order of everything except INITIAL_BOT_BUY_PRICE 20% higher up
+      // Create a buy order of 2 x INITIAL_BOT_BUY_PRICE 20% below
+    // If price decreases (this should have triggered an already created buy order)
+      // Remove all sell orders
+      // Create a new sell order 20% up of everything except stock worth INITIAL_BOT_BUY_PRICE.
+      // Create buy order 20% below for twice of previous buy order.
+    
+
+    // If price increases by 20%
     if (CURRENT_STOCK_PRICE > LAST_PRICE_IN_SCALE * 1.2) {
-      if (CURRENT_STOCK_PRICE > TOP_PRICE_IN_SCALE*1.2) {
+      // Before the first trade, if we have not bought anythng yet.
+      if (CURRENT_STOCK_PRICE > TOP_PRICE_IN_SCALE*1.2 && !HAS_BOUGHT_FIRST_STOCK) {
         TOP_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE;
         LAST_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE * 1.2;
         // Empty open buy orders
@@ -340,34 +353,41 @@
         document.getElementById('stockCountInput').value = INITIAL_BOT_BUY_PRICE/TOP_PRICE_IN_SCALE;
         document.getElementById('limitPriceInput').value = TOP_PRICE_IN_SCALE;
         handlePlaceOrder();
+        HAS_BOUGHT_FIRST_STOCK = true;
+      // If price increases and the bot already owns something
       } else { // A sell order should have been triggered
-        // Empty open buy orders
+        LAST_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE * 1.2;
+        // Remove all buy orders
         CURRENT_MONEY_BALANCE += openBuyOrderValue();
         OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
-        //Create a buy order at LAST_PRICE_IN_SCALE with order size = total cost of triggered sell order / (2*1.2)
-        ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount/(2*1.2);
-        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE;
+        // Create a new sell order of everything except INITIAL_BOT_BUY_PRICE 20% higher up (this will always be equal to a size of 0.2*INITIAL_BOT_BUY_PRICE)
+        ORDER_TYPE = 'sell';
+        document.getElementById('stockCountInput').value = 0.1*CURRENT_STOCK_COUNT;
+        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE * 1.2;
         handlePlaceOrder();
-        LAST_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE * 1.2;
+        // Create a buy order of 2 x INITIAL_BOT_BUY_PRICE 20% below
+        ORDER_TYPE = 'buy';
+        document.getElementById('stockCountInput').value = 2*INITIAL_BOT_BUY_PRICE/(LAST_PRICE_IN_SCALE / 1.2);
+        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE / 1.2;
+        handlePlaceOrder();
       }
+    // If price decreases by 20%
     } else if (CURRENT_STOCK_PRICE < LAST_PRICE_IN_SCALE / 1.2) { // A buy order should have been triggered
       LAST_PRICE_IN_SCALE /= 1.2;
       // If a buy order was indeed triggered
       const lastOrder = CLOSED_ORDERS[CLOSED_ORDERS.length-1];
-      if (lastOrder.orderType === 'buy' && Math.abs(lastOrder.limitPrice/CURRENT_STOCK_PRICE) < 1.1) {
-        // Create a sell order of price LAST_PRICE_IN_SCALE * 1.2 and same amount as triggered buy order
+      if (lastOrder.orderType === 'buy' && Math.abs(lastOrder.limitPrice/CURRENT_STOCK_PRICE) < 1.05) {
+        // Remove all sell orders
+        OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'buy');
+        // Create a new sell order 20% up of everything except stock worth INITIAL_BOT_BUY_PRICE.
         ORDER_TYPE = 'sell';
-        document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount;
+        document.getElementById('stockCountInput').value = CURRENT_STOCK_COUNT - INITIAL_BOT_BUY_PRICE/(LAST_PRICE_IN_SCALE * 1.2);
         document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE * 1.2;
         handlePlaceOrder();
       }
       // If we have enough money
       if (CURRENT_MONEY_BALANCE > CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount * 2 * LAST_PRICE_IN_SCALE) {
-        // Empty open buy orders
-        CURRENT_MONEY_BALANCE += openBuyOrderValue();
-        OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
-        // Create a buy order of price LAST_PRICE_IN_SCALE / 1.2 with total cost of buy order = total cost of triggered buy order * 2 * 1.2
+        // Create buy order 20% below for twice of previous buy order.
         ORDER_TYPE = 'buy';
         document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount * 2 * 1.2;
         document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE / 1.2;

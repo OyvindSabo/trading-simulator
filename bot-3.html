@@ -38,18 +38,19 @@
   let GRAPH_HEIGHT = 540;
   let CURRENT_STOCK_PRICE = 500;
   let CURRENT_TIME = 0;
-  let CURRENT_MONEY_BALANCE = 100000;
+  let CURRENT_MONEY_BALANCE = 10000;
   let CURRENT_STOCK_COUNT = 0;
   let ORDER_TYPE = 'buy';
   let OPEN_ORDERS = [];
   let CLOSED_ORDERS = [];
   let PRICE_HISTORY = [];
+  let AMOUNT_OF_MONEY_TO_BUY_STOCK = 0;
+  let NUMBER_OF_EXECUTED_BUY_ORDERS = 0;
+  let AMOUNT_OF_MONEY_FROM_SELLING_STOCK = 0;
+  let NUMBER_OF_EXECUTED_SELL_ORDERS = 0;
 
   // Bot variables
-  let LAST_PRICE_IN_SCALE = 500;
-  let TOP_PRICE_IN_SCALE = 500 / 1.2; // The highest price at which an order has been placed
-  INITIAL_BOT_BUY_PRICE = 400; // Not the price per stock, but the total order cost
-  const ORDER_COST = 1000; // The total cost of each regularly added order
+  const ORDER_COST = 100; // The total cost of each regularly added order
   let MONEY_SPENT_SINCE_LAST_SALE = 0;
   let STOCK_BOUGHT_SINCE_LAST_SALE = 0;
   const PROFIT_FACTOR = 1.2;
@@ -154,10 +155,8 @@
       }
     } else if (ORDER_TYPE === 'buy') {
       console.log("You don't have enough money");
-      //alert('You don\'t have enough money.');
     } else {
       console.log("You don't have enough stocks");
-      //alert('You don\'t have enough stocks.');
     }
   };
 </script>
@@ -269,13 +268,12 @@
           CURRENT_STOCK_COUNT += order.stockCount;
           CLOSED_ORDERS.push(order);
           OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
+          AMOUNT_OF_MONEY_TO_BUY_STOCK += order.limitPrice;
+          NUMBER_OF_EXECUTED_BUY_ORDERS++;
         }
       } else if (order.orderType === 'sell') {
         if (CURRENT_STOCK_PRICE >= order.limitPrice) {
-          console.log('stock count before sell: ', CURRENT_STOCK_COUNT);
-          console.log('order.stockCount: ', order.stockCount);
           CURRENT_STOCK_COUNT -= order.stockCount;
-          console.log('stock count after sell: ', CURRENT_STOCK_COUNT);
           CURRENT_MONEY_BALANCE += order.stockCount * order.limitPrice;
           CLOSED_ORDERS.push(order);
           OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
@@ -287,6 +285,8 @@
               openBuyOrderValue()
             ).toFixed(2)
           );
+          AMOUNT_OF_MONEY_FROM_SELLING_STOCK += order.limitPrice;
+          NUMBER_OF_EXECUTED_SELL_ORDERS++;
 
           // Reset global variable for total spent since last sale
           MONEY_SPENT_SINCE_LAST_SALE = 0;
@@ -299,7 +299,6 @@
 
   const clearOpenSellOrders = () => {
     //CURRENT_MONEY_BALANCE += openSellOrderValue();
-    console.log('Clearing open sell orders');
     OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'buy');
   };
 
@@ -367,31 +366,13 @@
   };
 
   const averageBuyPrice = () => {
-    let totalBuyValue = 0;
-    const closedBuyOrders = CLOSED_ORDERS.filter(
-      order => order.orderType === 'buy'
-    );
-    if (closedBuyOrders.length) {
-      return (
-        closedBuyOrders.reduce((a, b) => a + b.stockCount * b.limitPrice, 0) /
-        closedBuyOrders.reduce((a, b) => a + b.stockCount, 0)
-      );
-    }
-    return 0;
+    if (!NUMBER_OF_EXECUTED_BUY_ORDERS) return 0;
+    return AMOUNT_OF_MONEY_TO_BUY_STOCK / NUMBER_OF_EXECUTED_BUY_ORDERS;
   };
 
   const averageSellPrice = () => {
-    let totalBuyValue = 0;
-    const closedSellOrders = CLOSED_ORDERS.filter(
-      order => order.orderType === 'sell'
-    );
-    if (closedSellOrders.length) {
-      return (
-        closedSellOrders.reduce((a, b) => a + b.stockCount * b.limitPrice, 0) /
-        closedSellOrders.reduce((a, b) => a + b.stockCount, 0)
-      );
-    }
-    return 0;
+    if (!NUMBER_OF_EXECUTED_SELL_ORDERS) return 0;
+    return AMOUNT_OF_MONEY_FROM_SELLING_STOCK / NUMBER_OF_EXECUTED_SELL_ORDERS;
   };
 
   const openBuyOrderValue = () =>
@@ -479,10 +460,6 @@
       const sellLimitPrice = averageBuyPriceSinceLastSale * PROFIT_FACTOR;
       clearOpenSellOrders();
       ORDER_TYPE = 'sell';
-      console.log(
-        'amount to sell: ',
-        Math.min(STOCK_BOUGHT_SINCE_LAST_SALE, CURRENT_STOCK_COUNT)
-      );
       document.getElementById('stockCountInput').value = Math.min(
         STOCK_BOUGHT_SINCE_LAST_SALE,
         CURRENT_STOCK_COUNT
@@ -492,68 +469,6 @@
     }
 
     TIME_COUNTER++;
-    /*if (CURRENT_STOCK_PRICE > LAST_PRICE_IN_SCALE * 1.2) {
-      if (CURRENT_STOCK_PRICE > TOP_PRICE_IN_SCALE * 1.2) {
-        TOP_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE;
-        LAST_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE * 1.2;
-        // Empty open buy orders
-        CURRENT_MONEY_BALANCE += openBuyOrderValue();
-        OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
-        // Create buy order of 100 dollars at price TOP_PRICE_IN_SCALE
-        ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value =
-          INITIAL_BOT_BUY_PRICE / TOP_PRICE_IN_SCALE;
-        document.getElementById('limitPriceInput').value = TOP_PRICE_IN_SCALE;
-        handlePlaceOrder();
-      } else {
-        // A sell order should have been triggered
-        // Empty open buy orders
-        CURRENT_MONEY_BALANCE += openBuyOrderValue();
-        OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
-        //Create a buy order at LAST_PRICE_IN_SCALE with order size = total cost of triggered sell order / (2*1.2)
-        ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value =
-          CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount / (2 * 1.2);
-        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE;
-        handlePlaceOrder();
-        LAST_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE * 1.2;
-      }
-    } else if (CURRENT_STOCK_PRICE < LAST_PRICE_IN_SCALE / 1.2) {
-      // A buy order should have been triggered
-      LAST_PRICE_IN_SCALE /= 1.2;
-      // If a buy order was indeed triggered
-      const lastOrder = CLOSED_ORDERS[CLOSED_ORDERS.length - 1];
-      if (
-        lastOrder.orderType === 'buy' &&
-        Math.abs(lastOrder.limitPrice / CURRENT_STOCK_PRICE) < 1.1
-      ) {
-        // Create a sell order of price LAST_PRICE_IN_SCALE * 1.2 and same amount as triggered buy order
-        ORDER_TYPE = 'sell';
-        document.getElementById('stockCountInput').value =
-          CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount;
-        document.getElementById('limitPriceInput').value =
-          LAST_PRICE_IN_SCALE * 1.2;
-        handlePlaceOrder();
-      }
-      // If we have enough money
-      if (
-        CURRENT_MONEY_BALANCE >
-        CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount *
-          2 *
-          LAST_PRICE_IN_SCALE
-      ) {
-        // Empty open buy orders
-        CURRENT_MONEY_BALANCE += openBuyOrderValue();
-        OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
-        // Create a buy order of price LAST_PRICE_IN_SCALE / 1.2 with total cost of buy order = total cost of triggered buy order * 2 * 1.2
-        ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value =
-          CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount * 2 * 1.2;
-        document.getElementById('limitPriceInput').value =
-          LAST_PRICE_IN_SCALE / 1.2;
-        handlePlaceOrder();
-      }
-    }*/
 
     setTimeout(iterate, 4);
   };

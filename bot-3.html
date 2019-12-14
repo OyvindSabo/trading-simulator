@@ -49,17 +49,24 @@
   let LAST_PRICE_IN_SCALE = 500;
   let TOP_PRICE_IN_SCALE = 500 / 1.2; // The highest price at which an order has been placed
   INITIAL_BOT_BUY_PRICE = 400; // Not the price per stock, but the total order cost
-  
+  const ORDER_COST = 1000; // The total cost of each regularly added order
+  let MONEY_SPENT_SINCE_LAST_SALE = 0;
+  let STOCK_BOUGHT_SINCE_LAST_SALE = 0;
+  const PROFIT_FACTOR = 1.2;
+  let TIME_COUNTER = 0;
+  const PERIOD_BETWEEN_ORDERS = 100;
+
   const handleBuyClick = () => {
     ORDER_TYPE = 'buy';
     document.getElementById('buyButton').style['background-color'] = 'green';
     document.getElementById('buyButton').style['color'] = 'white';
     document.getElementById('sellButton').style['background-color'] = 'white';
     document.getElementById('sellButton').style['color'] = 'black';
-    document.getElementById('placeOrderButton').style['background-color'] = 'green';
+    document.getElementById('placeOrderButton').style['background-color'] =
+      'green';
     document.getElementById('placeOrderButton').style['color'] = 'white';
     document.getElementById('placeOrderButton').innerHTML = 'Place buy order';
-  }
+  };
 
   const handleSellClick = () => {
     ORDER_TYPE = 'sell';
@@ -67,16 +74,17 @@
     document.getElementById('buyButton').style['color'] = 'black';
     document.getElementById('sellButton').style['background-color'] = 'red';
     document.getElementById('sellButton').style['color'] = 'white';
-    document.getElementById('placeOrderButton').style['background-color'] = 'red';
+    document.getElementById('placeOrderButton').style['background-color'] =
+      'red';
     document.getElementById('placeOrderButton').style['color'] = 'white';
     document.getElementById('placeOrderButton').innerHTML = 'Place sell order';
-  }
+  };
 
   const updateOrderBook = () => {
     OPEN_ORDERS.reverse();
     CLOSED_ORDERS.reverse();
-    if (CLOSED_ORDERS.length > 10000) {
-      CLOSED_ORDERS.length = 10000;
+    if (CLOSED_ORDERS.length > 10) {
+      CLOSED_ORDERS.length = 10;
     }
     let openOrders = `Open orders<br>
                         <table>
@@ -88,13 +96,17 @@
                           <tr>`;
     OPEN_ORDERS.forEach(order => {
       openOrders += `<tr>
-                       <td><span style='color:${order.orderType === 'buy' ? 'green' : 'red'}'>${order.orderType === 'buy' ? 'Buy' : 'Sell'}</td>
+                       <td><span style='color:${
+                         order.orderType === 'buy' ? 'green' : 'red'
+                       }'>${order.orderType === 'buy' ? 'Buy' : 'Sell'}</td>
                        <td>${order.stockCount.toFixed(2)}</td>
                        <td>€${order.limitPrice.toFixed(2)}</td>
-                       <td>€${(order.stockCount * order.limitPrice).toFixed(2)}</td>
+                       <td>€${(order.stockCount * order.limitPrice).toFixed(
+                         2
+                       )}</td>
                      </tr>`;
     });
-    openOrders += '</table>'
+    openOrders += '</table>';
     document.getElementById('openOrders').innerHTML = openOrders;
     let closedOrders = `Closed orders<br>
                         <table>
@@ -106,25 +118,37 @@
                           <tr>`;
     CLOSED_ORDERS.forEach(order => {
       closedOrders += `<tr>
-                         <td><span style='color:${order.orderType === 'buy' ? 'green' : 'red'}'>${order.orderType === 'buy' ? 'Buy' : 'Sell'}</td>
+                         <td><span style='color:${
+                           order.orderType === 'buy' ? 'green' : 'red'
+                         }'>${order.orderType === 'buy' ? 'Buy' : 'Sell'}</td>
                          <td>${order.stockCount.toFixed(2)}</td>
                          <td>€${order.limitPrice.toFixed(2)}</td>
-                         <td>€${(order.stockCount * order.limitPrice).toFixed(2)}</td>
+                         <td>€${(order.stockCount * order.limitPrice).toFixed(
+                           2
+                         )}</td>
                        </tr>`;
     });
-    closedOrders += '</table>'
+    closedOrders += '</table>';
     document.getElementById('closedOrders').innerHTML = closedOrders;
     OPEN_ORDERS.reverse();
     CLOSED_ORDERS.reverse();
-  }
-  
+  };
+
   const handlePlaceOrder = () => {
     const stockCount = Number(document.getElementById('stockCountInput').value);
     const limitPrice = Number(document.getElementById('limitPriceInput').value);
-    if ((ORDER_TYPE === 'buy' && stockCount * limitPrice <= CURRENT_MONEY_BALANCE) || (ORDER_TYPE === 'sell' && stockCount <= CURRENT_STOCK_COUNT)) {
+    if (
+      (ORDER_TYPE === 'buy' &&
+        stockCount * limitPrice <= CURRENT_MONEY_BALANCE) ||
+      (ORDER_TYPE === 'sell' && stockCount <= CURRENT_STOCK_COUNT)
+    ) {
       document.getElementById('stockCountInput').value = '';
       document.getElementById('limitPriceInput').value = '';
-      OPEN_ORDERS.push({orderType: ORDER_TYPE, stockCount: stockCount, limitPrice: limitPrice});
+      OPEN_ORDERS.push({
+        orderType: ORDER_TYPE,
+        stockCount: stockCount,
+        limitPrice: limitPrice,
+      });
       if (ORDER_TYPE === 'buy') {
         CURRENT_MONEY_BALANCE -= stockCount * limitPrice;
       }
@@ -135,70 +159,109 @@
       console.log("You don't have enough stocks");
       //alert('You don\'t have enough stocks.');
     }
-  }
+  };
 </script>
 <body>
-  <div id='tradingWindow' style='width:100%;'>
-    <div id='sideBar' style='width:25%;float:left'>
-      <div id='sideBarContent'>
-        Current price: <span id='currentStockPrice'></span><br>
-        <br>
-        Money:      €<span id='currentMoneyBalance'></span> <span id='currentOpenOrderValue' style='color:lightgray'></span><br>
-        <br>
-        Stocks:      <span id='currentStockCount'></span> <span id='currentPortfolioValue' style='color:lightgray'></span><br>
-        <br>
-        Total value: €<span id='currentTotalValue'></span><br>
-        <br>
-        <button id='buyButton' onclick='handleBuyClick()' style='background-color:green;color:white' class='sideBarButton' type='button' style='width=100%;'>Buy</button>
-        <button id='sellButton' onclick='handleSellClick()' style='background-color:white' class='sideBarButton' type='button' style='width=100%'>Sell</button><br>
-        <br>
-        Amount<br>
-        <input id='stockCountInput' type='number' min='0' class='amountInput'><br>
-        <br>
-        Limit price<br>
-        <input id='limitPriceInput' type='number' min='0' class='amountInput'><br>
-        <br>
-        <button id='placeOrderButton' onclick='handlePlaceOrder()' style='background-color:green;color:white' class='sideBarButton' type='button' style='width=100%'>Place Buy Order</button>
+  <div id="tradingWindow" style="width:100%;">
+    <div id="sideBar" style="width:25%;float:left">
+      <div id="sideBarContent">
+        Current price: <span id="currentStockPrice"></span><br />
+        <br />
+        Money: €<span id="currentMoneyBalance"></span>
+        <span id="currentOpenOrderValue" style="color:lightgray"></span><br />
+        <br />
+        Stocks: <span id="currentStockCount"></span>
+        <span id="currentPortfolioValue" style="color:lightgray"></span><br />
+        <br />
+        Total value: €<span id="currentTotalValue"></span><br />
+        <br />
+        <button
+          id="buyButton"
+          onclick="handleBuyClick()"
+          style="background-color:green;color:white"
+          class="sideBarButton"
+          type="button"
+          style="width=100%;"
+        >
+          Buy
+        </button>
+        <button
+          id="sellButton"
+          onclick="handleSellClick()"
+          style="background-color:white"
+          class="sideBarButton"
+          type="button"
+          style="width=100%"
+        >
+          Sell</button
+        ><br />
+        <br />
+        Amount<br />
+        <input
+          id="stockCountInput"
+          type="number"
+          min="0"
+          class="amountInput"
+        /><br />
+        <br />
+        Limit price<br />
+        <input
+          id="limitPriceInput"
+          type="number"
+          min="0"
+          class="amountInput"
+        /><br />
+        <br />
+        <button
+          id="placeOrderButton"
+          onclick="handlePlaceOrder()"
+          style="background-color:green;color:white"
+          class="sideBarButton"
+          type="button"
+          style="width=100%"
+        >
+          Place Buy Order
+        </button>
       </div>
     </div>
-    <div id='mainContent' style='width:75%;float:right'>
-      <canvas id='graph' width='1920' height='540;' style='width:100%'></canvas>
-      <div id=fullWidth style='width:100%'>
-        <div id='orderStats' class='orders'>
-          Average buy price: <span id='averageBuyPrice' style='color:green'></span><br>
-          Average sell price: <span id='averageSellPrice' style='color:red'></span>
+    <div id="mainContent" style="width:75%;float:right">
+      <canvas id="graph" width="1920" height="540;" style="width:100%"></canvas>
+      <div id="fullWidth" style="width:100%">
+        <div id="orderStats" class="orders">
+          Average buy price:
+          <span id="averageBuyPrice" style="color:green"></span><br />
+          Average sell price:
+          <span id="averageSellPrice" style="color:red"></span>
         </div>
       </div>
-      <div id='leftHalf' style='width:50%;float:left'>
-        <div id='openOrders' class='orders'>
-          Open orders<br>
+      <div id="leftHalf" style="width:50%;float:left">
+        <div id="openOrders" class="orders">
+          Open orders<br />
           <span></span>
         </div>
       </div>
-      <div id='rightHalf' style='width:50%;float:right'>
-        <div id='closedOrders' class='orders'>
-          Closed orders<br>
-        </div>
+      <div id="rightHalf" style="width:50%;float:right">
+        <div id="closedOrders" class="orders">Closed orders<br /></div>
       </div>
     </div>
   </div>
 </body>
 
-<script>  
+<script>
   const initCanvas = () => {
     const canvas = document.getElementById('graph');
     const context = canvas.getContext('2d');
     context.fillStyle = 'whitesmoke';
     context.fillRect(0, 0, GRAPH_PERIOD, GRAPH_HEIGHT);
-  }
+  };
 
   const addToPriceHistory = () => {
     PRICE_HISTORY.push(CURRENT_STOCK_PRICE);
-    while (PRICE_HISTORY.length > GRAPH_PERIOD/10) {
+    while (PRICE_HISTORY.length > GRAPH_PERIOD / 10) {
       PRICE_HISTORY.shift();
     }
-  }
-  
+  };
+
   const handleOrders = () => {
     OPEN_ORDERS.forEach(order => {
       if (order.orderType === 'buy') {
@@ -209,127 +272,228 @@
         }
       } else if (order.orderType === 'sell') {
         if (CURRENT_STOCK_PRICE >= order.limitPrice) {
+          console.log('stock count before sell: ', CURRENT_STOCK_COUNT);
+          console.log('order.stockCount: ', order.stockCount);
           CURRENT_STOCK_COUNT -= order.stockCount;
-          CURRENT_MONEY_BALANCE += order.stockCount*order.limitPrice;
+          console.log('stock count after sell: ', CURRENT_STOCK_COUNT);
+          CURRENT_MONEY_BALANCE += order.stockCount * order.limitPrice;
           CLOSED_ORDERS.push(order);
           OPEN_ORDERS.splice(OPEN_ORDERS.indexOf(order), 1);
-          console.log("SOLD SOMETHING!, Current total value: ", (CURRENT_STOCK_PRICE*CURRENT_STOCK_COUNT + CURRENT_MONEY_BALANCE + openBuyOrderValue()).toFixed(2));
+          console.log(
+            'SOLD SOMETHING!, Current total value: ',
+            (
+              CURRENT_STOCK_PRICE * CURRENT_STOCK_COUNT +
+              CURRENT_MONEY_BALANCE +
+              openBuyOrderValue()
+            ).toFixed(2)
+          );
+
+          // Reset global variable for total spent since last sale
+          MONEY_SPENT_SINCE_LAST_SALE = 0;
+          // Reset global variable for total bought since last sale
+          STOCK_BOUGHT_SINCE_LAST_SALE = 0;
         }
       }
     });
-  }
+  };
 
-  const average = (list) => list.reduce((a, b) => a+b)/list.length;
+  const clearOpenSellOrders = () => {
+    //CURRENT_MONEY_BALANCE += openSellOrderValue();
+    console.log('Clearing open sell orders');
+    OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'buy');
+  };
+
+  const average = list => list.reduce((a, b) => a + b) / list.length;
 
   const drawGraph = () => {
     const canvas = document.getElementById('graph');
     const context = canvas.getContext('2d');
-    
+
     // Clear canvas
     context.fillStyle = 'whitesmoke';
     context.lineWidth = 5;
     context.fillRect(0, 0, GRAPH_PERIOD, GRAPH_HEIGHT);
-    const averagePrice = PRICE_HISTORY.reduce((a, b) => a+b)/PRICE_HISTORY.length;
-    
+    const averagePrice =
+      PRICE_HISTORY.reduce((a, b) => a + b) / PRICE_HISTORY.length;
+
     // Draw exponential lines and numbers
     for (let i = 0; i < 100; i++) {
       context.beginPath();
-      context.moveTo(0, GRAPH_HEIGHT/2 + averagePrice-Math.pow(1.2, i));
-      context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT/2 + averagePrice-Math.pow(1.2, i));
+      context.moveTo(0, GRAPH_HEIGHT / 2 + averagePrice - Math.pow(1.2, i));
+      context.lineTo(
+        GRAPH_PERIOD,
+        GRAPH_HEIGHT / 2 + averagePrice - Math.pow(1.2, i)
+      );
       context.strokeStyle = 'lightgray';
       context.strokeWidth = 5;
       context.stroke();
-      context.font = `${0.1*Math.pow(1.2, i)}px Arial`;
+      context.font = `${0.1 * Math.pow(1.2, i)}px Arial`;
       context.fillStyle = 'lightgray';
-      context.fillText(String(Math.pow(1.2, i).toFixed(2)), 10, GRAPH_HEIGHT/2 + averagePrice-Math.pow(1.2, i)-10);
+      context.fillText(
+        String(Math.pow(1.2, i).toFixed(2)),
+        10,
+        GRAPH_HEIGHT / 2 + averagePrice - Math.pow(1.2, i) - 10
+      );
     }
-    
+
     // Draw orders
     for (order of OPEN_ORDERS) {
       context.beginPath();
-      context.moveTo(0, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
-      context.lineTo(GRAPH_PERIOD, GRAPH_HEIGHT/2 + averagePrice-order.limitPrice);
+      context.moveTo(0, GRAPH_HEIGHT / 2 + averagePrice - order.limitPrice);
+      context.lineTo(
+        GRAPH_PERIOD,
+        GRAPH_HEIGHT / 2 + averagePrice - order.limitPrice
+      );
       context.strokeStyle = order.orderType === 'buy' ? 'green' : 'orangered';
       context.lineWidth = 5;
       context.stroke();
     }
-    
+
     // Draw graph
-    for (let i = 0; i < PRICE_HISTORY.length-1; i++) {
+    for (let i = 0; i < PRICE_HISTORY.length - 1; i++) {
       context.beginPath();
-      context.moveTo(i*GRAPH_PERIOD/PRICE_HISTORY.length, GRAPH_HEIGHT / 2 + averagePrice-PRICE_HISTORY[i]);
-      context.lineTo((i+1)*GRAPH_PERIOD/PRICE_HISTORY.length, GRAPH_HEIGHT / 2 + averagePrice-PRICE_HISTORY[i+1]);
+      context.moveTo(
+        (i * GRAPH_PERIOD) / PRICE_HISTORY.length,
+        GRAPH_HEIGHT / 2 + averagePrice - PRICE_HISTORY[i]
+      );
+      context.lineTo(
+        ((i + 1) * GRAPH_PERIOD) / PRICE_HISTORY.length,
+        GRAPH_HEIGHT / 2 + averagePrice - PRICE_HISTORY[i + 1]
+      );
       context.strokeStyle = 'red';
       context.lineWidth = 5;
       context.stroke();
     }
-  }
-  
+  };
+
   const averageBuyPrice = () => {
     let totalBuyValue = 0;
-    const closedBuyOrders = CLOSED_ORDERS.filter(order => order.orderType === 'buy')
+    const closedBuyOrders = CLOSED_ORDERS.filter(
+      order => order.orderType === 'buy'
+    );
     if (closedBuyOrders.length) {
-      return closedBuyOrders.reduce((a, b) => a + b.stockCount*b.limitPrice, 0)/closedBuyOrders.reduce((a, b) => a + b.stockCount, 0);
+      return (
+        closedBuyOrders.reduce((a, b) => a + b.stockCount * b.limitPrice, 0) /
+        closedBuyOrders.reduce((a, b) => a + b.stockCount, 0)
+      );
     }
     return 0;
-  }
+  };
 
   const averageSellPrice = () => {
     let totalBuyValue = 0;
-    const closedSellOrders = CLOSED_ORDERS.filter(order => order.orderType === 'sell')
+    const closedSellOrders = CLOSED_ORDERS.filter(
+      order => order.orderType === 'sell'
+    );
     if (closedSellOrders.length) {
-      return closedSellOrders.reduce((a, b) => a + b.stockCount*b.limitPrice, 0)/closedSellOrders.reduce((a, b) => a + b.stockCount, 0);
+      return (
+        closedSellOrders.reduce((a, b) => a + b.stockCount * b.limitPrice, 0) /
+        closedSellOrders.reduce((a, b) => a + b.stockCount, 0)
+      );
     }
     return 0;
-  }
-  
-  const openBuyOrderValue = () =>
-    OPEN_ORDERS
-      .filter(order => order.orderType === 'buy')
-      .reduce((a, b) => a + b.stockCount*b.limitPrice, 0)
+  };
 
-  // Create the start order for the bot
-  ORDER_TYPE = 'buy';
-  document.getElementById('stockCountInput').value = INITIAL_BOT_BUY_PRICE/TOP_PRICE_IN_SCALE;
-  document.getElementById('limitPriceInput').value = TOP_PRICE_IN_SCALE;
-  handlePlaceOrder();
-  
+  const openBuyOrderValue = () =>
+    OPEN_ORDERS.filter(order => order.orderType === 'buy').reduce(
+      (a, b) => a + b.stockCount * b.limitPrice,
+      0
+    );
+
+  const openSellOrderValue = () =>
+    OPEN_ORDERS.filter(order => order.orderType === 'sell').reduce(
+      (a, b) => a + b.stockCount * b.limitPrice,
+      0
+    );
+
   const iterate = () => {
-    
     // Calculate and set current price
-    CURRENT_STOCK_PRICE = (Math.floor(Math.random()*2) == 1
-      ? CURRENT_STOCK_PRICE * 1.01
-      : CURRENT_STOCK_PRICE / 1.01)
-    document.getElementById('currentStockPrice').innerHTML = CURRENT_STOCK_PRICE.toFixed(2);
-    
+    CURRENT_STOCK_PRICE =
+      Math.floor(Math.random() * 2) == 1
+        ? CURRENT_STOCK_PRICE * 1.01
+        : CURRENT_STOCK_PRICE / 1.01;
+    document.getElementById(
+      'currentStockPrice'
+    ).innerHTML = CURRENT_STOCK_PRICE.toFixed(2);
+
     addToPriceHistory();
 
     handleOrders();
     updateOrderBook(); // Has been commented out to enable super fast simulations
-    
+
     // Set current money balance
-    document.getElementById('currentMoneyBalance').innerHTML = CURRENT_MONEY_BALANCE.toFixed(2);
-    document.getElementById('currentOpenOrderValue').innerHTML = `(+ €${openBuyOrderValue().toFixed(2)})`;
+    document.getElementById(
+      'currentMoneyBalance'
+    ).innerHTML = CURRENT_MONEY_BALANCE.toFixed(2);
+    document.getElementById(
+      'currentOpenOrderValue'
+    ).innerHTML = `(+ €${openBuyOrderValue().toFixed(2)})`;
 
     // Set current stock count
-    document.getElementById('currentStockCount').innerHTML = CURRENT_STOCK_COUNT.toFixed(2);
-    
+    document.getElementById(
+      'currentStockCount'
+    ).innerHTML = CURRENT_STOCK_COUNT.toFixed(2);
+
     // Calculate and set total value
-    document.getElementById('currentPortfolioValue').innerHTML = `(= €${(CURRENT_STOCK_PRICE*CURRENT_STOCK_COUNT).toFixed(2)})`;
-    document.getElementById('currentTotalValue').innerHTML = (CURRENT_STOCK_PRICE*CURRENT_STOCK_COUNT + CURRENT_MONEY_BALANCE + openBuyOrderValue()).toFixed(2);
+    document.getElementById('currentPortfolioValue').innerHTML = `(= €${(
+      CURRENT_STOCK_PRICE * CURRENT_STOCK_COUNT
+    ).toFixed(2)})`;
+    document.getElementById('currentTotalValue').innerHTML = (
+      CURRENT_STOCK_PRICE * CURRENT_STOCK_COUNT +
+      CURRENT_MONEY_BALANCE +
+      openBuyOrderValue()
+    ).toFixed(2);
 
     // Calculate and set average buy and sell price
-    document.getElementById('averageBuyPrice').innerHTML = averageBuyPrice().toFixed(2);
-    document.getElementById('averageSellPrice').innerHTML = averageSellPrice().toFixed(2);
-    
+    document.getElementById(
+      'averageBuyPrice'
+    ).innerHTML = averageBuyPrice().toFixed(2);
+    document.getElementById(
+      'averageSellPrice'
+    ).innerHTML = averageSellPrice().toFixed(2);
+
     // Calculate current time
     CURRENT_TIME++;
-    
+
     drawGraph();
 
     // Bot code
-    if (CURRENT_STOCK_PRICE > LAST_PRICE_IN_SCALE * 1.2) {
-      if (CURRENT_STOCK_PRICE > TOP_PRICE_IN_SCALE*1.2) {
+
+    // Buy a fixed amount for every timestep. (place order more than 1.01 above current time step)
+    if (TIME_COUNTER % PERIOD_BETWEEN_ORDERS === 0) {
+      ORDER_TYPE = 'buy';
+      const amountOfStockToBuy = ORDER_COST / (CURRENT_STOCK_PRICE * 1.02);
+      const buyLimitPrice = CURRENT_STOCK_PRICE * 1.02;
+      document.getElementById('stockCountInput').value = amountOfStockToBuy;
+      document.getElementById('limitPriceInput').value = buyLimitPrice;
+      handlePlaceOrder();
+      // Update a global variable with info on how much has been spent since the last sell order.
+      MONEY_SPENT_SINCE_LAST_SALE += ORDER_COST;
+      // Update a global variable with info on how many stocks have been bought since the last sell order.
+      STOCK_BOUGHT_SINCE_LAST_SALE += amountOfStockToBuy;
+      // Calculate average buy price per stock based on the globa variables for total spent and total bought
+      const averageBuyPriceSinceLastSale =
+        MONEY_SPENT_SINCE_LAST_SALE / STOCK_BOUGHT_SINCE_LAST_SALE;
+      // Create a sell order at 20% higher than the  average buy price
+      // sell everything
+      const sellLimitPrice = averageBuyPriceSinceLastSale * PROFIT_FACTOR;
+      clearOpenSellOrders();
+      ORDER_TYPE = 'sell';
+      console.log(
+        'amount to sell: ',
+        Math.min(STOCK_BOUGHT_SINCE_LAST_SALE, CURRENT_STOCK_COUNT)
+      );
+      document.getElementById('stockCountInput').value = Math.min(
+        STOCK_BOUGHT_SINCE_LAST_SALE,
+        CURRENT_STOCK_COUNT
+      );
+      document.getElementById('limitPriceInput').value = sellLimitPrice;
+      handlePlaceOrder();
+    }
+
+    TIME_COUNTER++;
+    /*if (CURRENT_STOCK_PRICE > LAST_PRICE_IN_SCALE * 1.2) {
+      if (CURRENT_STOCK_PRICE > TOP_PRICE_IN_SCALE * 1.2) {
         TOP_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE;
         LAST_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE * 1.2;
         // Empty open buy orders
@@ -337,48 +501,64 @@
         OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
         // Create buy order of 100 dollars at price TOP_PRICE_IN_SCALE
         ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value = INITIAL_BOT_BUY_PRICE/TOP_PRICE_IN_SCALE;
+        document.getElementById('stockCountInput').value =
+          INITIAL_BOT_BUY_PRICE / TOP_PRICE_IN_SCALE;
         document.getElementById('limitPriceInput').value = TOP_PRICE_IN_SCALE;
         handlePlaceOrder();
-      } else { // A sell order should have been triggered
+      } else {
+        // A sell order should have been triggered
         // Empty open buy orders
         CURRENT_MONEY_BALANCE += openBuyOrderValue();
         OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
         //Create a buy order at LAST_PRICE_IN_SCALE with order size = total cost of triggered sell order / (2*1.2)
         ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount/(2*1.2);
+        document.getElementById('stockCountInput').value =
+          CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount / (2 * 1.2);
         document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE;
         handlePlaceOrder();
         LAST_PRICE_IN_SCALE = LAST_PRICE_IN_SCALE * 1.2;
       }
-    } else if (CURRENT_STOCK_PRICE < LAST_PRICE_IN_SCALE / 1.2) { // A buy order should have been triggered
+    } else if (CURRENT_STOCK_PRICE < LAST_PRICE_IN_SCALE / 1.2) {
+      // A buy order should have been triggered
       LAST_PRICE_IN_SCALE /= 1.2;
       // If a buy order was indeed triggered
-      const lastOrder = CLOSED_ORDERS[CLOSED_ORDERS.length-1];
-      if (lastOrder.orderType === 'buy' && Math.abs(lastOrder.limitPrice/CURRENT_STOCK_PRICE) < 1.1) {
+      const lastOrder = CLOSED_ORDERS[CLOSED_ORDERS.length - 1];
+      if (
+        lastOrder.orderType === 'buy' &&
+        Math.abs(lastOrder.limitPrice / CURRENT_STOCK_PRICE) < 1.1
+      ) {
         // Create a sell order of price LAST_PRICE_IN_SCALE * 1.2 and same amount as triggered buy order
         ORDER_TYPE = 'sell';
-        document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount;
-        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE * 1.2;
+        document.getElementById('stockCountInput').value =
+          CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount;
+        document.getElementById('limitPriceInput').value =
+          LAST_PRICE_IN_SCALE * 1.2;
         handlePlaceOrder();
       }
       // If we have enough money
-      if (CURRENT_MONEY_BALANCE > CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount * 2 * LAST_PRICE_IN_SCALE) {
+      if (
+        CURRENT_MONEY_BALANCE >
+        CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount *
+          2 *
+          LAST_PRICE_IN_SCALE
+      ) {
         // Empty open buy orders
         CURRENT_MONEY_BALANCE += openBuyOrderValue();
         OPEN_ORDERS = OPEN_ORDERS.filter(order => order.orderType === 'sell');
         // Create a buy order of price LAST_PRICE_IN_SCALE / 1.2 with total cost of buy order = total cost of triggered buy order * 2 * 1.2
         ORDER_TYPE = 'buy';
-        document.getElementById('stockCountInput').value = CLOSED_ORDERS[CLOSED_ORDERS.length-1].stockCount * 2 * 1.2;
-        document.getElementById('limitPriceInput').value = LAST_PRICE_IN_SCALE / 1.2;
+        document.getElementById('stockCountInput').value =
+          CLOSED_ORDERS[CLOSED_ORDERS.length - 1].stockCount * 2 * 1.2;
+        document.getElementById('limitPriceInput').value =
+          LAST_PRICE_IN_SCALE / 1.2;
         handlePlaceOrder();
       }
-    }
+    }*/
 
     setTimeout(iterate, 4);
-  }
+  };
 
   initCanvas();
   iterate();
-// TODO: When it increases 20% and sells, it does not create new buy orders
+  // TODO: When it increases 20% and sells, it does not create new buy orders
 </script>

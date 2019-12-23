@@ -30,6 +30,16 @@
       background-color: red;
       }
 
+      @keyframes rot {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+      }
+
+      :root {
+      --np: 20;
+      --p: 100%/20 / 2;
+      }
+      
       .everything {
       margin: 0px;
       border: 0px;
@@ -38,14 +48,24 @@
       height: 100%;
       border-radius: 50%;
       background: linear-gradient(red, green);
+      mask: repeating-conic-gradient(#000 0% 5%, transparent 0% 10%);
+
+      animation-name: rot;
+      animation-duration: 2s;
+      animation-iteration-count: infinite;
+      animation-timing-function: linear;
+
+      height: 0;
+      padding-bottom: 100%;
       }
 
       h1 {
-      position: absolute;
-      margin-left: 50%;
-      margin-top: 5%;
-      transform: translate(-50%, 0px);
-      color: rgba(0, 50, 0, 255);
+      margin: 0px;
+      border: 0px;
+      padding: 0px;
+      width: 100%;
+      text-align: center;
+      color: rgba(200, 0, 0, 255);
       }
       
 

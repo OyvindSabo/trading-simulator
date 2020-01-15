@@ -449,10 +449,12 @@
       document.getElementById('limitPriceInput').value = buyLimitPrice;
       handlePlaceOrder();
       // Update a global variable with info on how much has been spent since the last sell order.
-      MONEY_SPENT_SINCE_LAST_SALE += ORDER_COST;
-      // Update a global variable with info on how many stocks have been bought since the last sell order.
-      STOCK_BOUGHT_SINCE_LAST_SALE += amountOfStockToBuy;
-      // Calculate average buy price per stock based on the globa variables for total spent and total bought
+      if (ORDER_COST <= CURRENT_MONEY_BALANCE) {
+        MONEY_SPENT_SINCE_LAST_SALE += ORDER_COST;
+        // Update a global variable with info on how many stocks have been bought since the last sell order.
+        STOCK_BOUGHT_SINCE_LAST_SALE += amountOfStockToBuy;
+        // Calculate average buy price per stock based on the globa variables for total spent and total bought
+      }
       const averageBuyPriceSinceLastSale =
         MONEY_SPENT_SINCE_LAST_SALE / STOCK_BOUGHT_SINCE_LAST_SALE;
       // Create a sell order at 20% higher than the  average buy price
